@@ -698,3 +698,4 @@ def fig_tab_extractor(pdf_pth):
 
         raise Exception('Error occurs in github_checker:', e)
         return None
+

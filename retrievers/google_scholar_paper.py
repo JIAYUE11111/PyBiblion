@@ -1,8 +1,8 @@
 import warnings
 from datetime import datetime
 from retry import retry
-from retrievers.Author import Author
-from retrievers.Publication import Document
+from Author import Author
+from Publication import Document
 
 
 class Google_paper(Document):
@@ -89,6 +89,6 @@ class Google_paper(Document):
         #     print(self.entity)
         return self.entity['num_citations'] if 'num_citations' in self.entity else 0
 
-# a = Google_paper('Alleviating pseudo-touching in attention U-Net-based binarization approach for the historical Tibetan document images')
-# # a.entity
-# print(a.authors)
+a = Google_paper('Alleviating pseudo-touching in attention U-Net-based binarization approach for the historical Tibetan document images')
+a.entity
+#print(a.authors)

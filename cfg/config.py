@@ -15,4 +15,4 @@ os.environ["OPENAI_API_BASE"] = BASE_URL
 os.environ["SERPER_API_KEY"] = 'None'
 S2_PAPER_URL = "https://api.semanticscholar.org/v1/paper/"
 S2_QUERY_URL = "https://api.semanticscholar.org/graph/v1/paper/search/bulk"
-from .local_config import *
+#from .local_config import *

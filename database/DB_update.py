@@ -184,6 +184,8 @@ def process_paper_is_review(row_id, session_factory):
 
     session.close()  # 
     return result
+
+
 def check_is_review(session, session_factory):
     # 
     results = session.query(PaperMapping).all()

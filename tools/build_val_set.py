@@ -7,7 +7,7 @@ from datetime import datetime
 import os
 import re
 import shelve
-
+import nltk
 import concurrent.futures
 from tqdm import tqdm
 

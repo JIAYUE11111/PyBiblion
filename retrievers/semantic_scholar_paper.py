@@ -11,7 +11,7 @@ S2_PAPER_URL = "https://api.semanticscholar.org/v1/paper/"
 S2_QUERY_URL = "https://api.semanticscholar.org/graph/v1/paper/search/bulk"
 CACHE_FILE = r"CACHE\.queryCache"
 from retry import retry
-from .metric_util import *
+from metric_util import *
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -376,3 +376,24 @@ class S2paper(Document):
             return self._RUI
         return {}
 
+if __name__ == "__main__":
+    try:
+        # Initialize an instance of S2paper class with a title to search for
+        paper_title = "Deep Learning for Natural Language Processing"
+        paper = S2paper(ref_obj=paper_title, ref_type='title', filled_authors=True, force_return=False)
+
+        # Fetch and print details about the paper
+        print(f"Title: {paper.title}")
+        print(f"Publication Date: {paper.publication_date}")
+        print(f"DOI: {paper.DOI}")
+        print(f"Abstract: {paper.abstract}")
+        print(f"Citation Count: {paper.citation_count}")
+        print(f"Reference Count: {paper.reference_count}")
+        print(f"Authors: {[author.name for author in paper.authors]}")
+        print(f"Publication Source: {paper.publication_source}")
+        print(f"Influential Citation Count: {paper.influential_citation_count}")
+        print(f"Field: {paper.field}")
+        print(f"Publisher: {paper.publisher}")
+
+    except Exception as e:
+        logger.error(f"An error occurred: {e}")
