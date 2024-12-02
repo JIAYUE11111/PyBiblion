@@ -12,6 +12,7 @@ S2_QUERY_URL = "https://api.semanticscholar.org/graph/v1/paper/search/bulk"
 CACHE_FILE = r"CACHE\.queryCache"
 from retry import retry
 from metric_util import *
+from CACHE.cache_request import *
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
@@ -376,24 +377,64 @@ class S2paper(Document):
             return self._RUI
         return {}
 
+
+    @retry(tries=5)
+    def recommendations_for_singlePaper(self,limit=100,recommendation_source='recent'):
+        """
+        recommendation_source:"recent" "all-cs"
+        """
+        # 目标 URL https://api.semanticscholar.org/recommendations/v1/papers/forpaper/{paper_id}
+        url = f"https://api.semanticscholar.org/recommendations/v1/papers/forpaper/{self.s2id}?fields=title,abstract,authors,citationCount,referenceCount&limit={limit}&from={recommendation_source}"
+        response=cached_get(url,headers=self.headers)
+        data=response.json()
+        data=data['recommendedPapers']
+
+        recommends=[]
+        for item in data:
+            rec=S2paper(item['title'])
+            info = {'paperId': item['paperId'], 'abstract': item['abstract'], 'citationcount': item['citationCount'],
+                    'referencecount': item['referenceCount'], 'title': item['title'], 'authors': item['authors']}
+            rec._entity = info
+            print(info)
+            # print(ref.citation_count)
+            recommends.append(rec)
+        return recommends
+
+
+    @retry(tries=5)
+    def recommendations_from_positive_and_negative_examples(self,pos,neg,limit=100):
+        """
+        pos和neg是id列表，既可以是paper_id也可以是arxiv_id
+        """
+        url = f"http://api.semanticscholar.org/recommendations/v1/papers?fields=title,url,authors,abstract,citationCount,referenceCount&limit={limit}"
+        # 请求体
+        payload = {
+            "positivePaperIds": pos,
+            "negativePaperIds": neg,
+        }
+        response=cached_post(url,json=payload,headers=self.headers)
+        data = response.json()
+        data = data['recommendedPapers']
+
+        recommends=[]
+        for item in data:
+
+            rec = S2paper(ref_obj=item['title'],ref_type="title")
+            info = {'paperId': item['paperId'], 'abstract': item['abstract'], 'citationcount': item['citationCount'],
+                    'referencecount': item['referenceCount'], 'title': item['title'], 'authors': item['authors']}
+            rec._entity = info
+            print(info)
+            # print(ref.citation_count)
+            recommends.append(rec)
+        return recommends
+
+
+
 if __name__ == "__main__":
-    try:
+
         # Initialize an instance of S2paper class with a title to search for
         paper_title = "Deep Learning for Natural Language Processing"
         paper = S2paper(ref_obj=paper_title, ref_type='title', filled_authors=True, force_return=False)
-
-        # Fetch and print details about the paper
-        print(f"Title: {paper.title}")
-        print(f"Publication Date: {paper.publication_date}")
-        print(f"DOI: {paper.DOI}")
-        print(f"Abstract: {paper.abstract}")
-        print(f"Citation Count: {paper.citation_count}")
-        print(f"Reference Count: {paper.reference_count}")
-        print(f"Authors: {[author.name for author in paper.authors]}")
-        print(f"Publication Source: {paper.publication_source}")
-        print(f"Influential Citation Count: {paper.influential_citation_count}")
-        print(f"Field: {paper.field}")
-        print(f"Publisher: {paper.publisher}")
-
-    except Exception as e:
-        logger.error(f"An error occurred: {e}")
+        pos = ["649def34f8be52c8b66281af98ae884c09aef38b"]
+        neg = ["ArXiv:1805.02262"]
+        paper.recommendations_from_positive_and_negative_examples(pos,neg)

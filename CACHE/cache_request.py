@@ -24,6 +24,8 @@ def generate_cache_file_name(url='', force_file_name=None):
             return os.path.join(base_dir, 'bulkCache.sqlite')
         if 'paper/search?' in url:
             return os.path.join(base_dir, 'relevantCache.sqlite')
+        if 'recommendations' in url:
+            return os.path.join(base_dir, 'recommendationsCache.sqlite')
     else:
         return os.path.join(base_dir, force_file_name)
     return os.path.join(base_dir, 'generalCache.sqlite')
