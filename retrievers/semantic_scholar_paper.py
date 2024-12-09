@@ -1,5 +1,6 @@
 import sys
 import os
+import time
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(BASE_DIR)
 import re
@@ -11,7 +12,7 @@ S2_PAPER_URL = "https://api.semanticscholar.org/v1/paper/"
 S2_QUERY_URL = "https://api.semanticscholar.org/graph/v1/paper/search/bulk"
 CACHE_FILE = r"CACHE\.queryCache"
 from retry import retry
-from metric_util import *
+from .metric_util import *
 from CACHE.cache_request import *
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
@@ -58,18 +59,42 @@ class S2paper(Document):
         self.use_cache = use_cache
 
 
+    def make_request_with_retry(self,url, retries=5, delay=1):
+        for attempt in range(retries):
+            try:
+                response =requests.get(url, headers=self.headers)
+                if response.status_code == 200:  # 如果收到 429 错误
+                    return response  # 返回响应对象
+                elif response is not None:
+                    print(f"Request failed with status {response.status_code}. Retrying in {delay} seconds...")
+                    time.sleep(delay)  # 等待一段时间再重试
+                    delay *= 2  # 每次重试延迟时间加倍（指数退避）
+                else:
+                    print(f"Request content is None. Retrying in {delay} seconds...")
+                    time.sleep(delay)  # 等待一段时间再重试
+                    delay *= 2  # 每次重试延迟时间加倍（指数退避）
+            except RequestException as e:
+                print(f"An error occurred: {e}")
+                break
 
-    # @retry()
+        return response  # 如果多次重试失败，返回 None
+
     @property
-    def entity(self, max_tries=5):
+    def entity(self):
         if self.ref_type == 'entity':
             self._entity = self.ref_obj
             return self._entity
 
         if self._entity is None:
             url = f"{self.S2_QUERY_URL}?query={self.ref_obj}&fieldsOfStudy=Computer Science&fields=url,title,abstract,authors,venue,externalIds,referenceCount,tldr,openAccessPdf,citationCount,influentialCitationCount,influentialCitationCount,fieldsOfStudy,s2FieldsOfStudy,publicationTypes,publicationDate,publicationVenue&offset=0&limit=1"
-            reply = cached_get(url, headers=self.headers)
-            response = reply.json()
+            reply = self.make_request_with_retry(url)
+            if reply is not None and reply.status_code == 200:
+                response = reply.json()
+            else:
+                print(f"Request failed with status code: {reply.status_code}")
+                self._entity = False
+                return self._entity
+                # 或者返回一个默认值或错误信息
             if "data" not in response:
                 msg = response.get("error") or response.get("message") or "unknown"
                 self._entity = False
@@ -83,13 +108,13 @@ class S2paper(Document):
                         self._entity = response['data'][0]
                         return self._entity
                     else:
-                        print(response['data'][0]['title'].lower())
                         self._entity = False
                         return self._entity
                 else:
                     self._entity = response['data'][0]
                     return self._entity
         return self._entity
+
 
     @property
     def gpt_keyword(self):
@@ -433,8 +458,9 @@ class S2paper(Document):
 if __name__ == "__main__":
 
         # Initialize an instance of S2paper class with a title to search for
-        paper_title = "Deep Learning for Natural Language Processing"
+        paper_title = "Improving Urban Flood Prediction using LSTM-DeepLabv3+ and Bayesian  Optimization with Spatiotemporal feature fusion"
         paper = S2paper(ref_obj=paper_title, ref_type='title', filled_authors=True, force_return=False)
-        pos = ["649def34f8be52c8b66281af98ae884c09aef38b"]
-        neg = ["ArXiv:1805.02262"]
-        paper.recommendations_from_positive_and_negative_examples(pos,neg)
+        print(paper.publisher)
+        print(paper.source_type)
+        print(paper.publication_date)
+
